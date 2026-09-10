@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "FoodSec",
+    "slug": "foodsec",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.foodsec.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FoodSec needs access to your camera to scan receipts and food items.",
+        "NSPhotoLibraryUsageDescription": "FoodSec needs access to your photos to select receipt images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.foodsec.app",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow FoodSec to access your camera to scan receipts and food items."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FoodSec needs access to your photos to select receipt images."
+        }
+      ]
+    ]
+  }
+}
