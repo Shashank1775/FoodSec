@@ -88,12 +88,23 @@ export function parseReceiptLine(line: string): ParsedReceiptLine | null {
   return { name, quantity: Math.max(1, quantity), price, raw: line.trim() };
 }
 
+/**
+ * Parses every line of a receipt. If at least one line carries a price, lines
+ * without one are treated as noise (store header, "2 @ 1.25" continuation rows,
+ * "ORGANIC" descriptors...) - on a real receipt every product row has a price.
+ * Receipts where OCR lost all prices keep every candidate line instead.
+ */
 export function parseReceipt(text: string): ParsedReceiptLine[] {
+  const candidates = text
+    .split(/\r?\n/)
+    .map(parseReceiptLine)
+    .filter((line): line is ParsedReceiptLine => line !== null);
+
+  const hasPrices = candidates.some((line) => line.price !== null);
   const seen = new Set<string>();
   const items: ParsedReceiptLine[] = [];
-  for (const line of text.split(/\r?\n/)) {
-    const parsed = parseReceiptLine(line);
-    if (!parsed) continue;
+  for (const parsed of candidates) {
+    if (hasPrices && parsed.price === null) continue;
     // OCR occasionally duplicates rows (e.g. table mode + wrapped text); keep the first.
     const key = parsed.name.toLowerCase();
     if (seen.has(key)) continue;

@@ -1,54 +1,61 @@
-import React, { useState } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Button, Text } from 'react-native-paper';
-import { AntDesign } from '@expo/vector-icons';
+/**
+ * Shows the captured receipt and kicks off OCR. The component only produces raw
+ * text; turning it into items and saving them is ScanScreen's job so that this
+ * stays reusable for any image source (camera, library, ...).
+ */
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Image, StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper';
 import { ocrService } from '../services/ocr/OCRService';
 
 interface PhotoPreviewSectionProps {
-  photo: any;
-  handleRetakePhoto: () => void;
-  onTextProcessed: (text: string) => void;
+  /** Local file URI of the photo to OCR. */
+  uri: string;
+  onRetake: () => void;
+  onTextRecognised: (text: string) => void;
+  onError: (message: string) => void;
 }
 
-export default function PhotoPreviewSection({ photo, handleRetakePhoto, onTextProcessed }: PhotoPreviewSectionProps) {
+export default function PhotoPreviewSection({ uri, onRetake, onTextRecognised, onError }: PhotoPreviewSectionProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  // OCR can take several seconds; if the user retakes (unmounting us) meanwhile,
+  // we must not call setState or report a stale result.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const handleSubmit = async () => {
+    setIsProcessing(true);
     try {
-      setIsProcessing(true);
-      console.log('Starting OCR processing...');
-      const text = await ocrService.processImage(photo.uri);
-      onTextProcessed(text);
+      const text = await ocrService.recognizeText(uri);
+      if (mounted.current) onTextRecognised(text);
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error('OCR failed:', error);
+      if (mounted.current) onError(error instanceof Error ? error.message : 'Could not read the receipt.');
     } finally {
-      setIsProcessing(false);
+      if (mounted.current) setIsProcessing(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: photo.uri }} style={styles.preview} />
+      <Image source={{ uri }} style={styles.preview} resizeMode="contain" />
       <View style={styles.buttonContainer}>
-        <Button
-          mode="contained"
-          onPress={handleRetakePhoto}
-          style={styles.button}
-          disabled={isProcessing}
-        >
-          Retake Photo
+        <Button mode="outlined" textColor="white" onPress={onRetake} style={styles.button} disabled={isProcessing}>
+          Retake
         </Button>
         <Button
           mode="contained"
           onPress={handleSubmit}
           style={styles.button}
+          loading={isProcessing}
           disabled={isProcessing}
         >
-          {isProcessing ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            'Process Receipt'
-          )}
+          {isProcessing ? 'Reading receipt…' : 'Process Receipt'}
         </Button>
       </View>
     </View>
@@ -75,4 +82,4 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
   },
-}); 
+});
